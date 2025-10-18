@@ -130,6 +130,8 @@ void auto_test(void) {
     int repeat_count = 0;
     int press_count = 0;
     double chatter_suppress_until = 0;  /* Suppress chatter detection until this time */
+    int potential_dropout_key = -1;     /* Key that might have dropout */
+    double potential_dropout_duration = 0; /* Duration of silence before dropout */
 
     printf("\n============================================================\n");
     printf("Auto Test (WSL2 Version)\n");
@@ -138,7 +140,7 @@ void auto_test(void) {
     printf("Dropouts and chattering will be detected automatically.\n");
     printf("\n");
     printf("Detection:\n");
-    printf("  - Dropout: Key repeat suddenly stops (within %.0fms)\n", 500.0);
+    printf("  - Dropout: Repeat stops briefly (100-1000ms), then same key resumes\n");
     printf("  - Chattering: Same key pressed consecutively (within %.0fms)\n", (double)CHATTER_THRESHOLD_MS);
     printf("\n");
     printf("Note: This method uses terminal input and is not completely accurate.\n");
@@ -156,9 +158,31 @@ void auto_test(void) {
             const char *key_name = get_key_name(c);
             press_count++;
 
-            if (c == last_key && last_time > 0) {
+            /* Check if this is a dropout confirmation */
+            if (c == potential_dropout_key && potential_dropout_key != -1) {
+                /* Same key pressed after short silence - dropout confirmed! */
+                dropout_count++;
+                printf(COLOR_BG_RED "[%s] ⚠️  DROPOUT DETECTED! %s repeat stopped for %.0fms then resumed (#%d)" COLOR_RESET "\n",
+                       timestamp, key_name, potential_dropout_duration, dropout_count);
+
+                /* Suppress chatter detection after dropout */
+                chatter_suppress_until = current_time + CHATTER_SUPPRESS_MS;
+
+                /* Clear potential dropout */
+                potential_dropout_key = -1;
+
+                /* Start new hold */
+                printf("[%s] %s pressed\n", timestamp, key_name);
+                first_press_time = current_time;
+                repeat_count = 0;
+            } else if (c == last_key && last_time > 0) {
                 /* Same key pressed/repeated */
                 double interval = current_time - last_time;
+
+                /* Clear potential dropout if different key */
+                if (c != potential_dropout_key) {
+                    potential_dropout_key = -1;
+                }
 
                 /* Check for chattering first (short interval, likely first repeat) */
                 /* Skip chatter detection if we're in suppression period */
@@ -174,6 +198,9 @@ void auto_test(void) {
                 }
             } else {
                 /* Different key pressed */
+                /* Clear potential dropout */
+                potential_dropout_key = -1;
+
                 if (last_key != -1 && repeat_count > 0) {
                     /* Previous key was being held */
                     double hold_duration = last_time - first_press_time;
@@ -196,18 +223,17 @@ void auto_test(void) {
             /* Timeout - check if key was being held */
             double silence_duration = current_time - last_time;
 
-            if (repeat_count > 0 && silence_duration > 100) {
-                /* Key was being held and now stopped */
-                if (silence_duration < 500) {
-                    /* Stopped too soon - possible dropout */
-                    dropout_count++;
-                    printf(COLOR_BG_RED "[%s] ⚠️  DROPOUT DETECTED! %s repeat stopped after %.0fms (#%d)" COLOR_RESET "\n",
-                           timestamp, get_key_name(last_key), silence_duration, dropout_count);
+            if (repeat_count > 0 && silence_duration > 100 && silence_duration < 1000) {
+                /* Key was being held and stopped for short time - potential dropout */
+                if (potential_dropout_key == -1) {
+                    /* Mark as potential dropout (don't show warning yet) */
+                    potential_dropout_key = last_key;
+                    potential_dropout_duration = silence_duration;
                 }
-
-                /* Suppress chatter detection for a while after dropout */
-                chatter_suppress_until = current_time + CHATTER_SUPPRESS_MS;
-
+            } else if (repeat_count > 0 && silence_duration >= 1000) {
+                /* Held long enough then stopped - intentional release */
+                /* Clear potential dropout */
+                potential_dropout_key = -1;
                 last_key = -1;
                 repeat_count = 0;
             }
