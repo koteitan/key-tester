@@ -1,31 +1,37 @@
-# Keyboard Glitch & Chatter Tester
+# Keyboard Dropout & Chatter Tester
 
-キーボードのハードウェア問題を検出するLinuxコマンドラインツールです。
+A Linux command-line tool to detect keyboard hardware issues.
 
-## 1. ホールドテスト（Hold Test）
-キーを押し続けている間に、グリッチによって意図せずキーが離されたことを検出します。
+## Features
 
-**使用方法:**
-- キーを押し続ける
-- グリッチが発生してキーが離されると警告が表示されます
-- 50ms未満の短いリリースをグリッチとして検出します
+### Auto Detection Mode
+Press any keys freely. The tool automatically detects:
 
-## 2. チャタリングテスト（Chatter Test）
-2つのキーを交互に押す際に、チャタリング（バウンス）によって同じキーが連続で検出されることを検出します。
+**1. Dropout Detection**
+- Detects when key repeat suddenly stops and then resumes
+- 2-stage confirmation prevents false positives
+  - Stage 1: Marks as potential dropout when repeat stops (100-1000ms)
+  - Stage 2: Confirms dropout only when the same key is pressed again
+- No warnings for intentional key releases
 
-**使用方法:**
-- 2つのキーを交互に押す（例: 左右の矢印キー、AとBキー）
-- チャタリングが発生すると警告が表示されます
-- 200ms未満の間隔で同じキーが連続して押されるとチャタリングとして検出します
+**2. Chatter Detection**
+- Detects key bouncing when the same key is pressed consecutively
+- Within 200ms threshold
+- Suppressed for 1 second after dropout/hold end to avoid false warnings
 
-## インストール
+### Display
+- Real-time key press/repeat monitoring
+- Red background warnings for detected issues
+- Summary statistics on exit
 
-### 必要条件
-- GCC (C99以上)
-- Linux OS（/dev/input/ サポート）
-- sudo権限（入力デバイスへのアクセスに必要）
+## Installation
 
-### ビルド方法
+### Requirements
+- GCC (C99 or later)
+- Linux OS with terminal support
+- WSL2 compatible (uses terminal input instead of /dev/input)
+
+### Build
 
 ```bash
 make
