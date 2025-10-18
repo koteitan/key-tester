@@ -133,19 +133,29 @@ void auto_test(void) {
     int potential_dropout_key = -1;     /* Key that might have dropout */
     double potential_dropout_duration = 0; /* Duration of silence before dropout */
 
-    printf("\n============================================================\n");
-    printf("Auto Test (WSL2 Version)\n");
-    printf("============================================================\n");
-    printf("Press any keys freely.\n");
-    printf("Dropouts and chattering will be detected automatically.\n");
     printf("\n");
-    printf("Detection:\n");
-    printf("  - Dropout: Repeat stops briefly (100-1000ms), then same key resumes\n");
-    printf("  - Chattering: Same key pressed consecutively (within %.0fms)\n", (double)CHATTER_THRESHOLD_MS);
-    printf("\n");
-    printf("Note: This method uses terminal input and is not completely accurate.\n");
-    printf("Press Ctrl+C to exit the test.\n");
     printf("------------------------------------------------------------\n");
+/* ### (1) Hold Test
+- Press and hold a key.
+- If dropout (short release) is detected, A warning message will be displayed.
+
+### (2) Chatter Test
+- Type two keys alternately.
+- If chatter (multiple registrations) is detected, A warning message will be displayed.
+*/
+    printf("Keyboard Dropout & Chatter Auto Test\n");
+    printf("\n");
+    printf("(1) Hold Test:\n");
+    printf(" - Press and hold a key.\n");
+    printf(" - If dropout (short release) is detected, a warning message will be displayed.\n");
+    printf("(2) Chatter Test:\n");
+    printf(" - Type two keys alternately.\n");
+    printf(" - If chatter (multiple registrations) is detected, a warning message will be displayed.\n");
+    printf("\n");
+    printf("Press Ctrl+C to exit the test.\n");
+    printf("============================================================\n");
+    printf("Test Start\n");
+    printf("============================================================\n");
 
     set_raw_mode();
 
@@ -162,8 +172,8 @@ void auto_test(void) {
             if (c == potential_dropout_key && potential_dropout_key != -1) {
                 /* Same key pressed after short silence - dropout confirmed! */
                 dropout_count++;
-                printf(COLOR_BG_RED "[%s] ⚠️  DROPOUT DETECTED! %s repeat stopped for %.0fms then resumed (#%d)" COLOR_RESET "\n",
-                       timestamp, key_name, potential_dropout_duration, dropout_count);
+                printf(COLOR_BG_RED "[%s] ⚠️  DROPOUT DETECTED! %s repeat stopped for %.0fms" COLOR_RESET "\n",
+                       timestamp, key_name, potential_dropout_duration);
 
                 /* Suppress chatter detection after dropout */
                 chatter_suppress_until = current_time + CHATTER_SUPPRESS_MS;
@@ -188,8 +198,8 @@ void auto_test(void) {
                 /* Skip chatter detection if we're in suppression period */
                 if (repeat_count == 0 && interval < CHATTER_THRESHOLD_MS && current_time > chatter_suppress_until) {
                     chatter_count++;
-                    printf(COLOR_BG_RED "[%s] ⚠️  CHATTER DETECTED! %s pressed again after %.1fms (#%d)" COLOR_RESET "\n",
-                           timestamp, key_name, interval, chatter_count);
+                    printf(COLOR_BG_RED "[%s] ⚠️  CHATTER DETECTED! %s pressed again after %.1fms" COLOR_RESET "\n",
+                           timestamp, key_name, interval);
                 } else {
                     /* Normal key repeat */
                     repeat_count++;
@@ -246,28 +256,9 @@ void auto_test(void) {
     }
 
     restore_terminal();
-    printf("\n\n============================================================\n");
-    printf("Test Complete\n");
-    printf("============================================================\n");
-    printf("Total key presses: %d\n", press_count);
-    printf("Dropouts detected: %d\n", dropout_count);
-    printf("Chatters detected: %d\n", chatter_count);
-    printf("============================================================\n");
 }
 
 int main(void) {
-    printf("Keyboard Dropout & Chatter Tester (WSL2 Version)\n");
-    printf("==========================================================\n");
-    printf("Note: This version gets input via terminal and is less\n");
-    printf("      accurate than the /dev/input version.\n");
-    printf("      For more accurate testing, run on native Linux.\n");
-    printf("==========================================================\n");
-
-    /* Set up signal handler for Ctrl+C */
-    signal(SIGINT, signal_handler);
-
-    /* Run auto test */
     auto_test();
-
     return 0;
 }
