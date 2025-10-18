@@ -148,9 +148,12 @@ void auto_test(void) {
     printf("(1) Hold Test:\n");
     printf(" - Press and hold a key.\n");
     printf(" - If dropout (short release) is detected, a warning message will be displayed.\n");
+    printf(COLOR_BG_RED "[00:33:04.027] ⚠️  DROPOUT DETECTED! 'f' repeat stopped for 106ms" COLOR_RESET "\n");
+    printf("\n");
     printf("(2) Chatter Test:\n");
     printf(" - Type two keys alternately.\n");
     printf(" - If chatter (multiple registrations) is detected, a warning message will be displayed.\n");
+    printf(COLOR_BG_RED "[00:32:51.489] ⚠️  CHATTER DETECTED! 'f' pressed again after 158.0ms" COLOR_RESET "\n");
     printf("\n");
     printf("Press Ctrl+C to exit the test.\n");
     printf("============================================================\n");
